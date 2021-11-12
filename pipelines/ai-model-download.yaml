@@ -1,0 +1,19 @@
+context_parses: pypyr.parser.keyvaluepairs
+steps:
+  - name: pypyr.steps.contextsetf
+    in:
+      contextSetf:
+        local_dest_dir: models/spam-sms
+        file_keys: [
+          "exports/spam-sms/spam-classsifier-metadata.json",
+          "exports/spam-sms/spam-classsifier-tokenizer.json",
+          "exports/spam-sms/spam-model.h5",
+        ]
+  - name: pypyr.steps.py
+    in:
+      py: |
+        import os
+        print(os.environ.get("AWS_ACCESS_KEY_ID"))
+        from dotenv import load_dotenv
+        load_dotenv()
+        print(os.environ.get("AWS_ACCESS_KEY_ID"))
