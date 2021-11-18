@@ -20,6 +20,17 @@ AI_TOKENIZER = None
 MODEL_METADATA = {}
 LABELS_LEGEND_INVERTED = {}
 
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
 @app.on_event("startup")
 def on_startup():
     global AI_MODEL, AI_TOKENIZER, MODEL_METADATA, LABELS_LEGEND_INVERTED
@@ -40,9 +51,9 @@ def predict(query: str):
     preds_array = AI_MODEL.predict(x_input)
     preds = preds_array[0]
     top_index_val = np.argmax(preds)
-    top_pred = {"label" : LABELS_LEGEND_INVERTED[str(top_index_val)], "confidence" : float(preds[top_index_val])}
-    labeled_preds = [{"label" : LABELS_LEGEND_INVERTED[str(i)], "confidence" : float(x)} for i, x in enumerate(list(preds))]
-    return {"top" : top_pred, "predictions" : labeled_preds}
+    top_pred = {"label" : LABELS_LEGEND_INVERTED[str(top_index_val)], "confidence" : preds[top_index_val]}
+    labeled_preds = [{"label" : LABELS_LEGEND_INVERTED[str(i)], "confidence" :x} for i, x in enumerate(list(preds))]
+    return json.loads(json.dumps({"top" : top_pred, "predictions" : labeled_preds}, cls=NumpyEncoder))
     
 
 @app.get('/') # /?q = Hello world
