@@ -47,4 +47,12 @@ def index(q : Optional[str] = None):
     global AI_MODEL
     query = q or "hello world"
     preds_dict = AI_MODEL.predict(query)
-    return {"query" : query, "results" : preds_dict}
+    top = preds_dict.get('top')
+    data = {"query" : query, **top}
+    obj = SMS_INFERENCE.objects.create(**data)
+    return obj
+
+@app.get('/inferences/{my_uuid}')
+def read_inference(my_uuid):
+    obj = SMS_INFERENCE.objects.get(uuid=my_uuid)
+    return obj
