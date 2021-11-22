@@ -10,7 +10,8 @@ from . import (
     config,
     db,
     models,
-    ml
+    ml,
+    schema
 )
 
 
@@ -43,15 +44,17 @@ def on_startup():
     )
     DB_SESSION = db.get_session()
     sync_table(SMS_INFERENCE) #To sync the models to the database
-    
 
 @app.get('/') # /?q = Hello world
-def index(q : Optional[str] = None):
+def read_index(q : Optional[str] = None):
+    return {"hello" : "world"}
+
+@app.post('/') # /?q = Hello world
+def create_inferences(query : schema.Query):
     global AI_MODEL
-    query = q or "hello world"
-    preds_dict = AI_MODEL.predict(query)
+    preds_dict = AI_MODEL.predict(query.q)
     top = preds_dict.get('top')
-    data = {"query" : query, **top}
+    data = {"query" : query.q, **top}
     obj = SMS_INFERENCE.objects.create(**data)
     return obj
 
@@ -74,6 +77,7 @@ def fetch_rows(
     stmt.fetch_size = fetch_size
     result_set = session.execute(stmt)
     has_pages = result_set.has_more_pages
+    yield f"uuid,label,confidence,query,model_version\n"
     while has_pages:
         for row in result_set.current_rows:
             yield f"{row['uuid']},{row['label']},{row['confidence']},{row['query']},{row['model_version']}\n"
