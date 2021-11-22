@@ -1,3 +1,4 @@
+from typing import DefaultDict
 import uuid
 from cassandra.cqlengine import columns
 from cassandra.cqlengine.models import Model
@@ -9,3 +10,4 @@ class SMSInference(Model):
     query = columns.Text()
     label = columns.Text()
     confidence = columns.Float()
+    model_version = columns.Text(default="v1")

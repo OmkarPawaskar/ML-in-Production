@@ -2,6 +2,9 @@ import pathlib
 import json
 from typing import Optional
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+
+from cassandra.query import SimpleStatement
 from cassandra.cqlengine.management import sync_table
 from . import (
     config,
@@ -52,7 +55,35 @@ def index(q : Optional[str] = None):
     obj = SMS_INFERENCE.objects.create(**data)
     return obj
 
+@app.get('/inferences/')
+def list_inference():
+    obj = SMS_INFERENCE.objects.all()
+    #print(obj)
+    return list(obj)
+
 @app.get('/inferences/{my_uuid}')
 def read_inference(my_uuid):
     obj = SMS_INFERENCE.objects.get(uuid=my_uuid)
     return obj
+
+def fetch_rows(
+    stmt : SimpleStatement,
+    fetch_size : int = 25,
+    session = None
+    ):
+    stmt.fetch_size = fetch_size
+    result_set = session.execute(stmt)
+    has_pages = result_set.has_more_pages
+    while has_pages:
+        for row in result_set.current_rows:
+            yield f"{row['uuid']},{row['label']},{row['confidence']},{row['query']},{row['model_version']}\n"
+        has_pages = result_set.has_more_pages #will return False in end if there are no records left
+        result_set = session.execute(stmt, paging_state=result_set.paging_state) #uses paging state to get remaining records
+
+@app.get('/dataset')
+def export_inferences():
+    global DB_SESSION
+    cql_query = "SELECT * FROM spam_inferences.smsinference LIMIT 10000"
+    statement = SimpleStatement(cql_query)
+    #rows = DB_SESSION.execute(cql_query)
+    return StreamingResponse(fetch_rows(statement, 25, DB_SESSION))
