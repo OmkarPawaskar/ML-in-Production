@@ -1,6 +1,6 @@
 FROM codingforentrepreneurs/python:3.9-webapp-cassandra
 
-COPY ./env ./app/.env
+COPY .env ./app/.env
 COPY ./app ./app/app
 COPY ./requirements.txt ./app/requirements.txt
 COPY ./entrypoint.sh /app/entrypoint.sh
